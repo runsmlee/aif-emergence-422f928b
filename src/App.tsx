@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { FieldFailure, ModelVariable, MissingVariableSuggestion } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { FailureForm } from './components/FailureForm';
@@ -20,6 +20,7 @@ export function App() {
   const [failures, setFailures] = useLocalStorage<FieldFailure[]>('emergence-failures', []);
   const [activeTab, setActiveTab] = useState<ActiveTab>('log');
   const [selectedSuggestion, setSelectedSuggestion] = useState<MissingVariableSuggestion | null>(null);
+  const failureFormRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     trackEvent('page_view', { path: window.location.pathname });
@@ -55,6 +56,20 @@ export function App() {
     setSelectedSuggestion(null);
   }, []);
 
+  const handleStartAnalyzing = useCallback(() => {
+    setActiveTab('log');
+    trackEvent('hero_cta_click', { action: 'start_analyzing' });
+    // Use requestAnimationFrame to ensure tab switch renders before scroll
+    requestAnimationFrame(() => {
+      failureFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Focus the component input after scroll completes
+      setTimeout(() => {
+        const componentInput = failureFormRef.current?.querySelector<HTMLInputElement>('#component');
+        componentInput?.focus();
+      }, 400);
+    });
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100/50">
       {/* Header */}
@@ -69,22 +84,54 @@ export function App() {
               </div>
               <div>
                 <h1 className="text-lg font-bold tracking-tight text-gray-900">Emergence</h1>
-                <p className="text-xs text-gray-500 leading-tight">Discover missing variables from field failures</p>
+                <p className="text-xs text-gray-500 leading-tight">Surface what your model never included</p>
               </div>
             </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
-                {variables.length} variable{variables.length !== 1 ? 's' : ''}
-              </div>
-              <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary-500" aria-hidden="true"></span>
-                {failures.length} failure{failures.length !== 1 ? 's' : ''}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleStartAnalyzing}
+                className="btn bg-primary-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm shadow-primary-200 hover:bg-primary-700 hover:shadow-md hover:shadow-primary-200 active:scale-[0.97] sm:hidden min-h-[36px]"
+                aria-label="Start analyzing failures"
+              >
+                Log Failure
+              </button>
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
+                  {variables.length} variable{variables.length !== 1 ? 's' : ''}
+                </div>
+                <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-500" aria-hidden="true"></span>
+                  {failures.length} failure{failures.length !== 1 ? 's' : ''}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Hero / Value Prop Banner */}
+      <section className="border-b border-gray-200/60 bg-white" aria-label="Value proposition">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-sm sm:text-base font-semibold text-gray-900 leading-snug">
+                When hardware fails in the field but your model says it should work
+              </h2>
+              <p className="mt-1 text-xs sm:text-sm text-gray-500 leading-relaxed">
+                Log failures, run gap analysis, and surface the missing variables — algorithmically, not anecdotally.
+              </p>
+            </div>
+            <button
+              onClick={handleStartAnalyzing}
+              className="btn shrink-0 bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-primary-200 hover:bg-primary-700 hover:shadow-md hover:shadow-primary-200 active:scale-[0.97] min-h-[44px]"
+              aria-label="Start analyzing failures"
+            >
+              Log a Failure
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Mobile Tab Navigation */}
       <nav className="sticky top-[73px] z-20 border-b border-gray-200/80 bg-white/95 backdrop-blur-sm sm:hidden" aria-label="Main navigation">
@@ -128,7 +175,7 @@ export function App() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left Column: Failure Entry */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="card p-5 sm:p-6">
+            <div ref={failureFormRef} className="card p-5 sm:p-6">
               <h2 className="section-header mb-4">Log Field Failure</h2>
               <FailureForm onAdd={handleAddFailure} />
             </div>
@@ -169,13 +216,6 @@ export function App() {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200/80 bg-white mt-12">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <p className="text-center text-xs text-gray-400">Emergence — Field failure analysis for hardware engineers</p>
-        </div>
-      </footer>
     </div>
   );
 }
