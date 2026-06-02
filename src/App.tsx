@@ -116,10 +116,10 @@ export function App() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-sm sm:text-base font-semibold text-gray-900 leading-snug">
-                When hardware fails in the field but your model says it should work
+                Your model passed. The field failed.
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-gray-500 leading-relaxed">
-                Log failures, run gap analysis, and surface the missing variables — algorithmically, not anecdotally.
+                Emergence finds the variable your model never included — backed by your actual failure data, not guesswork.
               </p>
             </div>
             <button
